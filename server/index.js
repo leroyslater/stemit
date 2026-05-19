@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import cors from "cors";
 import express from "express";
 import multer from "multer";
+import ws from "ws";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +31,9 @@ const supabase =
         auth: {
           persistSession: false,
           autoRefreshToken: false,
+        },
+        realtime: {
+          transport: ws,
         },
       })
     : null;
