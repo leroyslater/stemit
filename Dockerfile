@@ -17,7 +17,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY server ./server
-RUN python3 -m pip install demucs certifi torchcodec librosa
+RUN python3 -m pip install --upgrade pip setuptools wheel
+RUN python3 -m pip install demucs certifi librosa
 
 COPY . .
 

@@ -69,7 +69,7 @@ npm install
 2. Install Python dependencies:
 
 ```bash
-python3 -m pip install demucs certifi torchcodec librosa
+python3 -m pip install demucs certifi librosa
 ```
 
 3. Install FFmpeg:

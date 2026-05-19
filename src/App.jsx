@@ -87,7 +87,7 @@ function getProgressState(job, isSubmitting) {
   if (isSubmitting) {
     return {
       value: 12,
-      label: "Uploading track to the local separator",
+      label: "Uploading track to the stem worker",
     };
   }
 
