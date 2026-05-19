@@ -114,14 +114,7 @@ git push -u origin main
 - run `supabase/schema.sql`
 - copy `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 
-### 4. Deploy the worker API somewhere suitable
-
-Examples:
-
-- Railway
-- Render
-- Fly.io
-- your own VPS/container host
+### 4. Deploy the worker API on Render
 
 Set worker env vars:
 
@@ -138,6 +131,50 @@ Set frontend env vars:
 - `VITE_API_BASE_URL=https://your-worker-api.example.com`
 
 Then deploy the frontend on Vercel.
+
+## Render Worker Setup
+
+This repo includes:
+
+- a root [Dockerfile](/Users/simonnegrelli/Documents/New%20project/song-layer-studio/Dockerfile) for the worker service
+- a [render.yaml](/Users/simonnegrelli/Documents/New%20project/song-layer-studio/render.yaml) blueprint so Render can auto-detect the service settings from GitHub
+
+Render will build the Docker image, expose the worker as a web service, and use `/api/health` as the health check.
+
+### Render steps
+
+1. Push the latest changes in `song-layer-studio` to [github.com/leroyslater/stemit](https://github.com/leroyslater/stemit)
+2. In Render, click `New +` then `Blueprint`
+3. Connect GitHub and choose `leroyslater/stemit`
+4. Render should detect [render.yaml](/Users/simonnegrelli/Documents/New%20project/song-layer-studio/render.yaml) and create a web service named `stemit-worker`
+5. In the service environment settings, set:
+
+```env
+SUPABASE_URL=https://mapqtamxnaxoytlfbicb.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-rotated-service-role-key
+SUPABASE_STORAGE_BUCKET=audio-assets
+HOST=0.0.0.0
+```
+
+6. Deploy
+7. After deployment, open the worker URL and test:
+
+```text
+https://your-render-service.onrender.com/api/health
+```
+
+8. Set that base URL in Vercel as:
+
+```env
+VITE_API_BASE_URL=https://your-render-service.onrender.com
+```
+
+### Important
+
+- Rotate the service role key before using it in production, because it was shared in chat.
+- Render will provide `PORT`; the worker already reads it automatically.
+- Free Render services can sleep when idle, so the first request after inactivity may be slow.
+- Keep the frontend on Vercel and the heavy Demucs worker on Render.
 
 ## Current Features
 

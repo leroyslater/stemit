@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: stemit-worker
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: SUPABASE_STORAGE_BUCKET
+        value: audio-assets
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

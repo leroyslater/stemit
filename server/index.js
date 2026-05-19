@@ -17,7 +17,9 @@ const jobsRoot = path.join(storageRoot, "jobs");
 const libraryManifestPath = path.join(storageRoot, "library.json");
 const workerScript = path.join(projectRoot, "server", "separate_track.py");
 const port = Number(process.env.PORT || 8787);
-const host = process.env.HOST || "127.0.0.1";
+const host =
+  process.env.HOST ||
+  (process.env.RAILWAY_ENVIRONMENT ? "0.0.0.0" : "127.0.0.1");
 const pythonCertificateFile = resolvePythonCertificateFile();
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
