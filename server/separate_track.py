@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -31,7 +32,8 @@ def parse_args():
     parser.add_argument("--mode", default="separate", choices=["separate", "expand-other"])
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--model", default="htdemucs")
+    parser.add_argument("--model", default=os.environ.get("DEMUCS_MODEL", "mdx_q"))
+    parser.add_argument("--segment", default=os.environ.get("DEMUCS_SEGMENT", ""))
     return parser.parse_args()
 
 
@@ -72,7 +74,7 @@ def ensure_wave_input(input_path: Path, workspace: Path) -> Path:
     return converted_path
 
 
-def run_demucs(source_path: Path, output_root: Path, model: str):
+def run_demucs(source_path: Path, output_root: Path, model: str, segment: str):
     command = [
         sys.executable,
         "-m",
@@ -81,8 +83,10 @@ def run_demucs(source_path: Path, output_root: Path, model: str):
         model,
         "-o",
         str(output_root),
-        str(source_path),
     ]
+    if segment:
+        command.extend(["--segment", str(segment)])
+    command.append(str(source_path))
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Demucs separation failed.")
@@ -200,7 +204,7 @@ def main():
         require_demucs()
         prepared_source = ensure_wave_input(input_path, output_root)
         analysis = analyze_track(prepared_source)
-        run_demucs(prepared_source, output_root, args.model)
+        run_demucs(prepared_source, output_root, args.model, args.segment)
         result = collect_result(output_root, prepared_source, args.model)
         result["analysis"] = analysis
 

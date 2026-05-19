@@ -40,6 +40,8 @@ Copy [.env.example](/Users/simonnegrelli/Documents/New%20project/song-layer-stud
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_STORAGE_BUCKET`
+- `DEMUCS_MODEL`
+- `DEMUCS_SEGMENT`
 
 When Supabase env vars are present, the worker:
 
@@ -47,6 +49,11 @@ When Supabase env vars are present, the worker:
 - stores searchable records in Supabase Postgres
 
 Without Supabase env vars, it falls back to local disk and `storage/library.json`.
+
+Recommended low-memory defaults for Render free:
+
+- `DEMUCS_MODEL=mdx_q`
+- `DEMUCS_SEGMENT=6`
 
 ## Supabase Setup
 
@@ -154,6 +161,8 @@ SUPABASE_URL=https://mapqtamxnaxoytlfbicb.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-rotated-service-role-key
 SUPABASE_STORAGE_BUCKET=audio-assets
 HOST=0.0.0.0
+DEMUCS_MODEL=mdx_q
+DEMUCS_SEGMENT=6
 ```
 
 6. Deploy
@@ -174,6 +183,7 @@ VITE_API_BASE_URL=https://your-render-service.onrender.com
 - Rotate the service role key before using it in production, because it was shared in chat.
 - Render will provide `PORT`; the worker already reads it automatically.
 - Free Render services can sleep when idle, so the first request after inactivity may be slow.
+- Free Render instances have limited memory, so `mdx_q` with a small segment size is the safest starting point.
 - Keep the frontend on Vercel and the heavy Demucs worker on Render.
 
 ## Current Features
