@@ -1,0 +1,12 @@
+node_modules
+dist
+.env.local
+.env.*.local
+.vercel
+storage/uploads
+storage/jobs
+storage/cache
+storage/library.json
+server/__pycache__
+fixtures
+*.log
