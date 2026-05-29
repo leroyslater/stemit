@@ -99,6 +99,95 @@ npm run dev:client
 
 The Vite app proxies to `127.0.0.1:8787` locally.
 
+## Windows Server Deployment
+
+For a Windows VM on your school network, the simplest deployment is:
+
+1. run the API on the server with Node.js
+2. build the React frontend
+3. let Express serve the built frontend and the API on the same port
+4. access everything over the local network
+
+### 1. Install prerequisites
+
+- Node.js 20+
+- Python 3
+- FFmpeg
+
+Confirm these work in PowerShell:
+
+```powershell
+node -v
+npm -v
+python --version
+ffmpeg -version
+```
+
+### 2. Copy the project and install dependencies
+
+```powershell
+npm install
+python -m pip install demucs certifi librosa
+```
+
+### 3. Create the environment file
+
+Create `.env.local` or set Windows environment variables for:
+
+```env
+HOST=0.0.0.0
+PORT=8787
+PYTHON_BIN=python
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_STORAGE_BUCKET=audio-assets
+DEMUCS_MODEL=mdx_q
+DEMUCS_SEGMENT=6
+VITE_API_BASE_URL=http://YOUR-SERVER-IP:8787
+```
+
+If you do not want to use Supabase yet, leave the Supabase variables unset and the app will use local disk storage.
+
+For a same-server deployment, leave `VITE_API_BASE_URL` unset before the production build so the frontend uses the same origin as the API.
+
+### 4. Build the frontend
+
+```powershell
+npm run build
+```
+
+### 5. Start the API
+
+```powershell
+npm run start
+```
+
+The API will listen on:
+
+```text
+http://YOUR-SERVER-IP:8787
+```
+
+### 6. Open the app
+
+After `npm run start`, open:
+
+```text
+http://YOUR-SERVER-IP:8787
+```
+
+### 7. Open firewall ports
+
+Allow inbound traffic on:
+
+- `8787` for the app and API
+
+### Notes
+
+- The backend now supports `PYTHON_BIN`, which is useful on Windows because Python is often available as `python` instead of `python3`.
+- The first Demucs run can take a while because the model may need to download.
+- If the VM is only for internal use, keeping everything on the local network is usually simpler than using Vercel or Render.
+
 ## Deployment Flow
 
 ### 1. Create a new GitHub repo

@@ -12,11 +12,13 @@ import ws from "ws";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
+const distRoot = path.join(projectRoot, "dist");
 const storageRoot = path.join(projectRoot, "storage");
 const uploadsRoot = path.join(storageRoot, "uploads");
 const jobsRoot = path.join(storageRoot, "jobs");
 const libraryManifestPath = path.join(storageRoot, "library.json");
 const workerScript = path.join(projectRoot, "server", "separate_track.py");
+const pythonBin = process.env.PYTHON_BIN || (process.platform === "win32" ? "python" : "python3");
 const port = Number(process.env.PORT || 8787);
 const host =
   process.env.HOST ||
@@ -210,11 +212,18 @@ app.use((error, _request, response, _next) => {
   });
 });
 
+if (fs.existsSync(distRoot)) {
+  app.use(express.static(distRoot));
+  app.get(/^(?!\/api|\/stems).*/, (_request, response) => {
+    response.sendFile(path.join(distRoot, "index.html"));
+  });
+}
+
 function runSeparationJob(job) {
   job.status = "processing";
 
   const child = spawn(
-    "python3",
+    pythonBin,
     [workerScript, "--input", job.inputPath, "--output", job.outputDirectory],
     {
       cwd: projectRoot,
@@ -270,7 +279,7 @@ function runExpandOtherJob(job) {
   job.status = "processing";
 
   const child = spawn(
-    "python3",
+    pythonBin,
     [
       workerScript,
       "--mode",
