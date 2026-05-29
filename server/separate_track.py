@@ -27,6 +27,10 @@ MINOR_PROFILE = np.array(
 )
 
 
+def log_stage(message: str):
+    print(message, file=sys.stderr, flush=True)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", default="separate", choices=["separate", "expand-other"])
@@ -48,6 +52,7 @@ def require_demucs():
 
 def ensure_wave_input(input_path: Path, workspace: Path) -> Path:
     if input_path.suffix.lower() in SUPPORTED_DIRECT_INPUTS:
+        log_stage(f"audio ready: using source file {input_path.name}")
         return input_path
 
     ffmpeg_path = shutil.which("ffmpeg")
@@ -57,6 +62,7 @@ def ensure_wave_input(input_path: Path, workspace: Path) -> Path:
         )
 
     converted_path = workspace / f"{input_path.stem}.wav"
+    log_stage(f"audio converting: {input_path.name} -> {converted_path.name}")
     command = [
         ffmpeg_path,
         "-y",
@@ -71,10 +77,12 @@ def ensure_wave_input(input_path: Path, workspace: Path) -> Path:
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "FFmpeg conversion failed.")
+    log_stage(f"audio converted: {converted_path.name}")
     return converted_path
 
 
 def run_demucs(source_path: Path, output_root: Path, model: str, segment: str):
+    log_stage(f"demucs started: model={model}{', segment=' + str(segment) if segment else ''}")
     command = [
         sys.executable,
         "-m",
@@ -90,9 +98,11 @@ def run_demucs(source_path: Path, output_root: Path, model: str, segment: str):
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Demucs separation failed.")
+    log_stage("demucs finished")
 
 
 def analyze_track(source_path: Path):
+    log_stage(f"analysis started: {source_path.name}")
     signal, sample_rate = librosa.load(str(source_path), sr=None, mono=True)
     tempo, _ = librosa.beat.beat_track(y=signal, sr=sample_rate)
     chroma = librosa.feature.chroma_cqt(y=signal, sr=sample_rate)
@@ -117,12 +127,14 @@ def analyze_track(source_path: Path):
         key_name = KEY_NAMES[best_minor_index]
         scale = "minor"
 
-    return {
+    result = {
         "bpm": round(float(np.asarray(tempo).item()), 1),
         "key": key_name,
         "scale": scale,
         "keyLabel": f"{key_name} {scale}",
     }
+    log_stage(f"analysis complete: bpm={result['bpm']}, key={result['keyLabel']}")
+    return result
 
 
 def collect_result(output_root: Path, source_path: Path, model: str):
@@ -145,6 +157,7 @@ def collect_result(output_root: Path, source_path: Path, model: str):
     if not stems:
         raise RuntimeError("No expected stem files were produced.")
 
+    log_stage(f"stems ready: found {len(stems)} stems")
     return {
         "model": model,
         "sourceName": source_path.name,
@@ -160,6 +173,7 @@ def expand_other_layers(source_path: Path, output_root: Path):
     layers_root = output_root / "expanded-other"
     layers_root.mkdir(parents=True, exist_ok=True)
     layers = []
+    log_stage(f"expand-other started: {source_path.name}")
 
     for layer_id, layer_name, low_hz, high_hz in OTHER_LAYER_PRESETS:
       output_file = layers_root / f"{layer_id}.wav"
@@ -185,6 +199,7 @@ def expand_other_layers(source_path: Path, output_root: Path):
           }
       )
 
+    log_stage(f"expand-other complete: created {len(layers)} layers")
     return {
         "sourceName": source_path.name,
         "layers": layers,

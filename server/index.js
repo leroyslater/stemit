@@ -54,6 +54,10 @@ const upload = multer({
   },
 });
 
+function logJobStage(job, message) {
+  console.log(`[job ${job.id}] ${message}`);
+}
+
 app.use(express.json());
 app.use(cors());
 app.use("/stems", express.static(jobsRoot));
@@ -173,6 +177,7 @@ app.post("/api/jobs", upload.single("track"), (request, response) => {
     };
 
     jobs.set(jobId, job);
+    logJobStage(job, `Upload received for ${job.trackName} (${job.sizeBytes} bytes)`);
     runSeparationJob(job);
 
     response.status(202).json({
@@ -221,6 +226,7 @@ if (fs.existsSync(distRoot)) {
 
 function runSeparationJob(job) {
   job.status = "processing";
+  logJobStage(job, "Separation job started");
 
   const child = spawn(
     pythonBin,
@@ -248,18 +254,28 @@ function runSeparationJob(job) {
   });
 
   child.stderr.on("data", (chunk) => {
-    stderr += chunk.toString();
+    const next = chunk.toString();
+    stderr += next;
+    next
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        console.log(`[job ${job.id}] ${line}`);
+      });
   });
 
   child.on("error", (error) => {
     job.status = "failed";
     job.error = error.message;
+    logJobStage(job, `Process error: ${error.message}`);
   });
 
   child.on("close", (code) => {
     if (code !== 0) {
       job.status = "failed";
       job.error = (stderr || stdout || "Separation failed.").trim();
+      logJobStage(job, `Separation failed: ${job.error}`);
       return;
     }
 
@@ -267,16 +283,20 @@ function runSeparationJob(job) {
       const payload = JSON.parse(stdout.trim());
       job.status = "completed";
       job.result = payload;
+      logJobStage(job, "Demucs finished, persisting stems");
       await persistCompletedJob(job);
+      logJobStage(job, "Stems persisted");
     })().catch((error) => {
       job.status = "failed";
       job.error = `Could not parse separator output: ${error.message}`;
+      logJobStage(job, job.error);
     });
   });
 }
 
 function runExpandOtherJob(job) {
   job.status = "processing";
+  logJobStage(job, "Expand-other job started");
 
   const child = spawn(
     pythonBin,
@@ -312,18 +332,28 @@ function runExpandOtherJob(job) {
   });
 
   child.stderr.on("data", (chunk) => {
-    stderr += chunk.toString();
+    const next = chunk.toString();
+    stderr += next;
+    next
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        console.log(`[job ${job.id}] ${line}`);
+      });
   });
 
   child.on("error", (error) => {
     job.status = "failed";
     job.error = error.message;
+    logJobStage(job, `Process error: ${error.message}`);
   });
 
   child.on("close", (code) => {
     if (code !== 0) {
       job.status = "failed";
       job.error = (stderr || stdout || "Could not expand the other stem.").trim();
+      logJobStage(job, `Expand-other failed: ${job.error}`);
       return;
     }
 
@@ -331,10 +361,13 @@ function runExpandOtherJob(job) {
       const payload = JSON.parse(stdout.trim());
       job.status = "completed";
       job.result = payload;
+      logJobStage(job, "Expanded layers created, persisting output");
       await persistExpandedOther(job);
+      logJobStage(job, "Expanded layers persisted");
     })().catch((error) => {
       job.status = "failed";
       job.error = `Could not parse expanded other output: ${error.message}`;
+      logJobStage(job, job.error);
     });
   });
 }
